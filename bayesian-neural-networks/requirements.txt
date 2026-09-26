@@ -1,0 +1,14 @@
+# Core (notebooks 00-05, 09 needs torch too)
+numpy>=2.0
+scipy>=1.11
+matplotlib>=3.8
+scikit-learn>=1.4
+jupyterlab>=4.0
+
+# Notebooks 06, 07, 09 (PyTorch). For a smaller CPU-only install see https://pytorch.org
+torch>=2.2
+
+# Notebook 08 (TensorFlow Probability uses Keras 2 via tf-keras)
+tensorflow>=2.16
+tensorflow-probability>=0.24
+tf-keras>=2.16

@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bayesian Neural Networks — Neural Networks with Caution</title>
+<meta name="description" content="A notebook course on Bayesian Neural Networks in Python: probability, MLE and MAP, MCMC, variational inference, MC dropout, TensorFlow Probability and applications.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F7FB;
+    --ink: #1D2440;
+    --muted: #5E6682;
+    --rule: #D9DCE8;
+    --posterior: #6A4C9C;
+    --posterior-soft: rgba(106, 76, 156, 0.16);
+    --panel: #FFFFFF;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151A2E; --ink: #E7E9F3; --muted: #A2A9C4; --rule: #2F3654;
+      --posterior: #B39DE0; --posterior-soft: rgba(179, 157, 224, 0.18); --panel: #1C2239;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 1.125rem; line-height: 1.6; }
+  a { color: var(--posterior); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible, canvas:focus-visible { outline: 3px solid var(--posterior); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* Hero */
+  header.hero { padding: 3.5rem 0 2.5rem; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 3rem; align-items: center; }
+  h1 { font-weight: 500; font-size: clamp(2.6rem, 5.4vw, 4.4rem); line-height: 1.02; letter-spacing: -0.02em; margin: 0 0 1rem; }
+  .subtitle { font-style: italic; font-size: 1.5rem; color: var(--muted); margin: 0 0 1.5rem; }
+  .lede { max-width: 34rem; margin: 0 0 1.5rem; }
+  .byline { font-family: var(--sans); font-size: 0.95rem; color: var(--muted); margin: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; font-family: var(--sans); }
+  .btn { display: inline-block; padding: 0.65rem 1.1rem; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.98rem; border: 1px solid var(--posterior); }
+  .btn.primary { background: var(--posterior); color: var(--paper); }
+  .btn.secondary { color: var(--posterior); }
+
+  figure.demo { margin: 0; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 1rem 1rem 0.75rem; }
+  #posterior { width: 100%; height: auto; aspect-ratio: 16 / 10; display: block; cursor: crosshair; touch-action: manipulation; }
+  figcaption { font-family: var(--sans); font-size: 0.9rem; color: var(--muted); display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; flex-wrap: wrap; padding-top: 0.5rem; }
+  figcaption button { font: inherit; color: var(--posterior); background: none; border: 0; padding: 0.2rem 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Sections */
+  section { padding: 2.75rem 0; border-top: 1px solid var(--rule); }
+  h2 { font-weight: 500; font-size: 2rem; letter-spacing: -0.01em; margin: 0 0 0.5rem; }
+  .section-intro { color: var(--muted); max-width: 42rem; margin: 0 0 2rem; }
+
+  /* Course path: a genuine sequence, so it is numbered */
+  .part { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 2rem; padding: 1.25rem 0; }
+  .part + .part { border-top: 1px dashed var(--rule); }
+  .part h3 { font-family: var(--sans); font-size: 1rem; font-weight: 600; margin: 0.35rem 0 0.25rem; }
+  .part .part-note { font-family: var(--sans); font-size: 0.9rem; color: var(--muted); margin: 0; }
+  ol.lessons { list-style: none; margin: 0; padding: 0; }
+  ol.lessons li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: 0.75rem; padding: 0.9rem 0; }
+  ol.lessons li + li { border-top: 1px solid var(--rule); }
+  .num { font-size: 2rem; line-height: 1; color: var(--posterior); font-variant-numeric: lining-nums tabular-nums; }
+  .lesson-title { font-size: 1.3rem; font-weight: 600; margin: 0 0 0.2rem; line-height: 1.3; }
+  .lesson-body { margin: 0 0 0.5rem; max-width: 40rem; }
+  .lesson-meta { font-family: var(--sans); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem; align-items: baseline; }
+  .tools { color: var(--muted); }
+
+  /* Setup + resources */
+  .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem; }
+  pre { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.1rem; overflow-x: auto; font-size: 0.88rem; line-height: 1.55; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  ul.plain { padding-left: 1.1rem; margin: 0; }
+  ul.plain li { margin-bottom: 0.8rem; }
+  .refs { font-size: 0.98rem; columns: 2 22rem; column-gap: 3rem; padding-left: 1.1rem; }
+  .refs li { break-inside: avoid; margin-bottom: 0.6rem; }
+  footer { border-top: 1px solid var(--rule); padding: 2rem 0 3rem; font-family: var(--sans); font-size: 0.9rem; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    .hero-grid, .two-col { grid-template-columns: 1fr; gap: 2rem; }
+    .part { grid-template-columns: 1fr; gap: 0.5rem; }
+    header.hero { padding-top: 2.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Bayesian Neural Networks</h1>
+      <p class="subtitle">Neural networks with caution</p>
+      <p class="lede">Ten Jupyter notebooks that take you from Bayes' rule to Bayesian deep learning in Python. Each one follows a chapter of the text, explains the mathematics, and lets you see a network say how sure it is.</p>
+      <p class="byline">A study course by Hale Türeli, Mathematics, 2025</p>
+      <div class="actions">
+        <a class="btn primary" href="#course">Start the course</a>
+        <a class="btn secondary" id="repo-link" href="#">View the code on GitHub</a>
+      </div>
+    </div>
+    <figure class="demo">
+      <canvas id="posterior" width="1120" height="700" tabindex="0" aria-label="Interactive Bayesian regression. Click to add a data point; the shaded band shows the posterior predictive uncertainty."></canvas>
+      <figcaption>
+        <span>Click to add observations. The band is where the model thinks the function could be; it narrows only where there is data.</span>
+        <button type="button" id="reset">Reset points</button>
+      </figcaption>
+    </figure>
+  </div>
+</header>
+
+<main>
+<section id="course">
+  <div class="wrap">
+    <h2>The course</h2>
+    <p class="section-intro">Work through the notebooks in order. The first six use only the scientific Python stack (NumPy, SciPy, scikit-learn); the later ones add PyTorch and TensorFlow Probability. Every notebook is saved with its outputs, so you can read it before running it.</p>
+    <div id="parts"></div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap two-col">
+    <div>
+      <h2>Run the notebooks</h2>
+      <p>The quickest start is the <em>Colab</em> link beside each notebook: it opens in your browser with nothing to install. To work locally:</p>
+<pre><code><span id="clone-line">git clone https://github.com/USERNAME/bayesian-neural-networks.git</span>
+cd bayesian-neural-networks
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+jupyter lab</code></pre>
+      <p>Every notebook runs on a laptop CPU in under about two minutes.</p>
+    </div>
+    <div>
+      <h2>Keep studying</h2>
+      <ul class="plain">
+        <li><a href="https://github.com/sydney-machine-learning/Bayesianneuralnetworks-MCMC-tutorial">Bayesian Neural Networks via MCMC</a>, the code for Chandra &amp; Simmons (2024), covering Bayesian linear, logistic and neural network models with Langevin MCMC.</li>
+        <li><a href="https://uvadlc-notebooks.readthedocs.io">UvA Deep Learning tutorials</a>: <em>Bayesian Deep Learning</em> and the DL2 series on BNNs with Pyro, including comparisons with MC dropout, ensembles and conformal prediction.</li>
+        <li><a href="https://github.com/paraschopra/bayesian-neural-network-mnist">Getting your neural network to say "I don't know"</a>, a Pyro and PyTorch BNN on MNIST.</li>
+        <li><a href="https://github.com/probml/pyprobml">pyprobml</a>, the notebooks for Murphy's <em>Probabilistic Machine Learning</em>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="references">
+  <div class="wrap">
+    <h2>References</h2>
+    <ul class="refs">
+      <li>Baan, J. (2021). <em>A Comprehensive Introduction to Bayesian Deep Learning</em>.</li>
+      <li>Blundell, C., Cornebise, J., Kavukcuoglu, K., &amp; Wierstra, D. (2015). Weight uncertainty in neural networks. <em>ICML</em>.</li>
+      <li>Brownlee, J. (2020). <em>Probability for Machine Learning</em>.</li>
+      <li>Chandra, R., &amp; Simmons, J. (2024). Bayesian Neural Networks via MCMC: A Python-Based Tutorial. <em>IEEE Access, 12</em>, 70519–70549.</li>
+      <li>Costa, G. (2022). <em>A first insight into Bayesian Neural Networks (BNNs)</em>.</li>
+      <li>Diaz Ochoa, J. G., Maier, L., &amp; Csiszar, O. (2023). Bayesian logical neural networks for human-centered applications in medicine. <em>Frontiers in Bioinformatics, 3</em>.</li>
+      <li>Foong, A. Y. K., Li, Y., Hernández-Lobato, J. M., &amp; Turner, R. E. (2019). "In-between" uncertainty in Bayesian neural networks.</li>
+      <li>Gal, Y. (2016). <em>Uncertainty in Deep Learning</em>. University of Cambridge.</li>
+      <li>Hein, M., Andriushchenko, M., &amp; Bitterwolf, J. (2019). Why ReLU networks yield high-confidence predictions far away from the training data. <em>CVPR</em>.</li>
+      <li>Jospin, L. V., Laga, H., Boussaid, F., Buntine, W., &amp; Bennamoun, M. (2022). Hands-On Bayesian Neural Networks — A Tutorial for Deep Learning Users. <em>IEEE Computational Intelligence Magazine, 17</em>(2).</li>
+      <li>Lakshminarayanan, B., Pritzel, A., &amp; Blundell, C. (2017). Simple and scalable predictive uncertainty estimation using deep ensembles. <em>NeurIPS</em>.</li>
+      <li>Murphy, K. P. (2022). <em>Probabilistic Machine Learning: An Introduction</em>. MIT Press.</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">Code released under the MIT License. The medical example in notebook 09 is for learning only and is not a diagnostic tool.</div>
+</footer>
+
+<script>
+/* ---------- Repository address: detected on GitHub Pages, otherwise the fallback ---------- */
+const FALLBACK_REPO = "USERNAME/bayesian-neural-networks";   // edit if you host the page elsewhere
+function detectRepo() {
+  const host = location.hostname;
+  if (host.endsWith(".github.io")) {
+    const user = host.replace(".github.io", "");
+    const first = location.pathname.split("/").filter(Boolean)[0];
+    return user + "/" + (first && !first.endsWith(".html") ? first : user + ".github.io");
+  }
+  return FALLBACK_REPO;
+}
+const REPO = detectRepo();
+const GH = "https://github.com/" + REPO;
+document.getElementById("repo-link").href = GH;
+document.getElementById("clone-line").textContent = "git clone " + GH + ".git";
+
+/* ---------- Course content ---------- */
+const PARTS = [
+  { title: "Foundations", note: "Introduction, Probability, and The Mathematics of Neural Networks", lessons: [
+    ["00", "00_why_uncertainty_matters", "Why uncertainty matters", "A single network is equally confident everywhere; an ensemble shows what it doesn't know. Aleatoric versus epistemic uncertainty.", "scikit-learn"],
+    ["01", "01_probability_and_bayes_rule", "Probability and Bayes' rule", "Random experiments, conditional probability, a medical-test example, distributions, the Beta–Binomial posterior and predictive distributions.", "NumPy, SciPy"],
+    ["02", "02_mathematics_of_neural_networks", "The mathematics of neural networks", "A network built from scratch: weights, activations, matrix shapes, backpropagation with a gradient check, and how much data you need.", "NumPy"],
+  ]},
+  { title: "From point estimates to posteriors", note: "Bayesian Neural Networks: the optimisation problem", lessons: [
+    ["03", "03_mle_vs_map_estimation", "MLE versus MAP estimation", "Least squares is maximum likelihood; weight decay is a Gaussian prior. Why a single best weight vector is not enough.", "NumPy, SciPy"],
+    ["04", "04_weights_as_distributions", "Weights as probability distributions", "An exact Bayesian output layer: functions drawn from the prior and posterior, and the predictive variance split into its two parts.", "NumPy"],
+  ]},
+  { title: "Approximate inference", note: "Approximations for Estimation and Software for BNN", lessons: [
+    ["05", "05_bnn_mcmc_numpy", "A BNN via MCMC", "Random-walk Metropolis–Hastings and Langevin sampling written by hand, with trace plots and the posterior predictive.", "NumPy"],
+    ["06", "06_bnn_bayes_by_backprop_pytorch", "Bayes by Backprop", "Variational inference with a Bayesian linear layer, the reparameterisation trick and the ELBO, plus what happens when data is scarce.", "PyTorch"],
+    ["07", "07_mc_dropout_and_ensembles_pytorch", "MC dropout and deep ensembles", "The two most used practical methods, compared side by side and tested for honest coverage.", "PyTorch"],
+    ["08", "08_bnn_tensorflow_probability", "BNNs with TensorFlow Probability", "DenseVariational layers and a probabilistic output that separates aleatoric from epistemic uncertainty.", "TensorFlow Probability"],
+  ]},
+  { title: "Applications", note: "Safety-critical applications and making better decisions", lessons: [
+    ["09", "09_applications_safety_and_decisions", "Safety-critical predictions and decisions", "Breast-cancer diagnosis: calibration, referring uncertain cases to a clinician, cost-sensitive thresholds and unusual inputs.", "PyTorch, scikit-learn"],
+  ]},
+];
+
+const partsEl = document.getElementById("parts");
+for (const part of PARTS) {
+  const div = document.createElement("div"); div.className = "part";
+  const items = part.lessons.map(([n, file, title, body, tools]) => `
+    <li>
+      <span class="num" aria-hidden="true">${n}</span>
+      <div>
+        <p class="lesson-title">${title}</p>
+        <p class="lesson-body">${body}</p>
+        <p class="lesson-meta">
+          <a href="notebooks/${file}.html">Read</a>
+          <a href="https://colab.research.google.com/github/${REPO}/blob/main/notebooks/${file}.ipynb">Open in Colab</a>
+          <a href="${GH}/blob/main/notebooks/${file}.ipynb">View on GitHub</a>
+          <span class="tools">${tools}</span>
+        </p>
+      </div>
+    </li>`).join("");
+  div.innerHTML = `<div><h3>${part.title}</h3><p class="part-note">${part.note}</p></div><ol class="lessons">${items}</ol>`;
+  partsEl.appendChild(div);
+}
+
+/* ---------- Interactive Bayesian regression (exact posterior over output weights) ---------- */
+const canvas = document.getElementById("posterior");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height, PAD = 36;
+const K = 22, CENTERS = Array.from({length: K}, (_, j) => -1.1 + 2.2 * j / (K - 1)), ELL = 0.13;
+const ALPHA = 4, BETA = 1 / (0.08 * 0.08), NSAMP = 14;
+const DEFAULT = [[-0.82, -0.35], [-0.7, -0.05], [-0.55, 0.3], [-0.42, 0.42], [0.35, -0.2], [0.48, -0.45], [0.6, -0.5], [0.72, -0.32]];
+let points = DEFAULT.map(p => p.slice());
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const phi = x => CENTERS.map(c => Math.exp(-((x - c) ** 2) / (2 * ELL * ELL)));
+const toPx = (x, y) => [PAD + (x + 1) / 2 * (W - 2 * PAD), H / 2 - y * (H / 2 - PAD) / 1.25];
+const fromPx = (px, py) => [(px - PAD) / (W - 2 * PAD) * 2 - 1, (H / 2 - py) * 1.25 / (H / 2 - PAD)];
+
+function cholesky(A) {                     // A = L L^T
+  const n = A.length, L = A.map(r => r.map(() => 0));
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
+    let s = A[i][j];
+    for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+    L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-12)) : s / L[j][j];
+  }
+  return L;
+}
+const fwd = (L, b) => { const n = b.length, x = new Array(n); for (let i = 0; i < n; i++) { let s = b[i]; for (let k = 0; k < i; k++) s -= L[i][k] * x[k]; x[i] = s / L[i][i]; } return x; };
+const bwd = (L, b) => { const n = b.length, x = new Array(n); for (let i = n - 1; i >= 0; i--) { let s = b[i]; for (let k = i + 1; k < n; k++) s -= L[k][i] * x[k]; x[i] = s / L[i][i]; } return x; };
+function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+let model = null;
+function fit() {
+  const A = Array.from({length: K}, (_, i) => Array.from({length: K}, (_, j) => (i === j ? ALPHA : 0)));
+  const b = new Array(K).fill(0);
+  for (const [x, y] of points) {
+    const f = phi(x);
+    for (let i = 0; i < K; i++) { b[i] += BETA * f[i] * y; for (let j = 0; j < K; j++) A[i][j] += BETA * f[i] * f[j]; }
+  }
+  const L = cholesky(A);
+  const m = bwd(L, fwd(L, b));                                   // posterior mean  A^{-1} b
+  const samples = Array.from({length: NSAMP}, () => {             // w = m + L^{-T} z  ~  N(m, A^{-1})
+    const z = bwd(L, Array.from({length: K}, randn)); return m.map((v, i) => v + z[i]);
+  });
+  const xs = Array.from({length: 240}, (_, i) => -1 + 2 * i / 239);
+  const rows = xs.map(x => {
+    const f = phi(x), v = fwd(L, f);
+    const mean = f.reduce((s, fi, i) => s + fi * m[i], 0);
+    const sd = Math.sqrt(1 / BETA + v.reduce((s, vi) => s + vi * vi, 0));   // aleatoric + epistemic
+    return { x, mean, sd, fs: samples.map(w => f.reduce((s, fi, i) => s + fi * w[i], 0)) };
+  });
+  model = rows;
+}
+
+function colors() {
+  const cs = getComputedStyle(document.documentElement);
+  return { ink: cs.getPropertyValue("--ink").trim(), rule: cs.getPropertyValue("--rule").trim(),
+           post: cs.getPropertyValue("--posterior").trim(), soft: cs.getPropertyValue("--posterior-soft").trim(),
+           muted: cs.getPropertyValue("--muted").trim() };
+}
+
+function draw(progress = 1) {
+  const c = colors();
+  ctx.clearRect(0, 0, W, H);
+  ctx.save(); ctx.beginPath(); ctx.rect(PAD / 2, PAD / 2, W - PAD, H - PAD); ctx.clip();
+  ctx.strokeStyle = c.rule; ctx.lineWidth = 1;
+  for (let g = -1; g <= 1; g += 0.5) {
+    const [gx] = toPx(g, 0); ctx.beginPath(); ctx.moveTo(gx, PAD / 2); ctx.lineTo(gx, H - PAD / 2); ctx.stroke();
+    const [, gy] = toPx(0, g); ctx.beginPath(); ctx.moveTo(PAD / 2, gy); ctx.lineTo(W - PAD / 2, gy); ctx.stroke();
+  }
+  const n = Math.max(2, Math.round(model.length * progress));
+  const rows = model.slice(0, n);
+  ctx.fillStyle = c.soft; ctx.beginPath();
+  rows.forEach((r, i) => { const [px, py] = toPx(r.x, r.mean + 2 * r.sd); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+  for (let i = rows.length - 1; i >= 0; i--) { const [px, py] = toPx(rows[i].x, rows[i].mean - 2 * rows[i].sd); ctx.lineTo(px, py); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = c.post; ctx.globalAlpha = 0.35; ctx.lineWidth = 1.4;
+  for (let s = 0; s < NSAMP; s++) { ctx.beginPath(); rows.forEach((r, i) => { const [px, py] = toPx(r.x, r.fs[s]); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.beginPath();
+  rows.forEach((r, i) => { const [px, py] = toPx(r.x, r.mean); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke();
+  ctx.fillStyle = c.ink;
+  for (const [x, y] of points) { const [px, py] = toPx(x, y); ctx.beginPath(); ctx.arc(px, py, 6.5, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = c.muted; ctx.font = "22px 'Instrument Sans', system-ui, sans-serif";
+  ctx.fillText(points.length + (points.length === 1 ? " observation" : " observations"), PAD, H - PAD / 2 - 6);
+}
+
+function render(animate) {
+  fit();
+  if (!animate || reduceMotion) { draw(1); return; }
+  const t0 = performance.now(), dur = 1400;
+  const step = now => { const p = Math.min(1, (now - t0) / dur); draw(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+canvas.addEventListener("click", e => {
+  const r = canvas.getBoundingClientRect();
+  const [x, y] = fromPx((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+  if (x >= -1 && x <= 1 && Math.abs(y) <= 1.3) { points.push([x, y]); render(false); }
+});
+canvas.addEventListener("keydown", e => {            // keyboard: Enter/Space adds a random point on the current mean curve
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  const x = Math.random() * 2 - 1, row = model.reduce((a, b) => Math.abs(b.x - x) < Math.abs(a.x - x) ? b : a);
+  points.push([x, row.mean + 0.08 * randn()]); render(false);
+});
+document.getElementById("reset").addEventListener("click", () => { points = DEFAULT.map(p => p.slice()); render(true); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => draw(1));
+render(true);
+</script>
+</body>
+</html>
